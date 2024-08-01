@@ -91,3 +91,11 @@ stages:
               slotname: 'stagging'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
+          - task: AzureAppServiceManage@0
+            inputs:
+              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+              Action: 'Swap Slots'
+              WebAppName: 'blue-green-deployment'
+              ResourceGroupName: 'rg-jira-db-001'
+              SourceSlot: 'stagging'
+              TargetSlot: 'production'         
