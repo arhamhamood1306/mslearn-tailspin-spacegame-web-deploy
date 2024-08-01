@@ -88,6 +88,6 @@ stages:
               appType: 'webApp'
               appName: '$(WebAppNameDev)'
               deployToSlotOrASE: 'true'
-              slotname: 'blue-green-deployment-stagging'
+              slotname: 'stagging'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
