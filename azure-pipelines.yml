@@ -73,8 +73,8 @@ stages:
     pool:
       vmImage: 'ubuntu-20.04'
     environment: dev
-    #variables:
-    #- group: Release
+    variables:
+    - group: Release
     strategy:
       runOnce:
         deploy:
@@ -86,7 +86,56 @@ stages:
             inputs:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
               appType: 'webApp'
-              appName: 'devenv'
+              appName: '$WebAppNameDev'
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+              deploymentMethod: 'auto'
+- stage: 'Test'
+  displayName: 'Deploy to the test environment'
+  dependsOn: Dev
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-20.04'
+    environment: test
+    variables:
+    - group: 'Release'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+              appType: 'webApp'
+              appName: '$WebAppNameTest'
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+              deploymentMethod: 'auto'
+
+- stage: 'Prod'
+  displayName: 'Deploy to the staging environment'
+  dependsOn: Test
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-20.04'
+    environment: prod
+    variables:
+    - group: 'Release'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+              appType: 'webApp'
+              appName: '$WebAppNameProd'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
 
