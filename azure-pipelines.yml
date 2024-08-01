@@ -88,7 +88,7 @@ stages:
               appType: 'webApp'
               appName: '$(WebAppNameDev)'
               deployToSlotOrASE: 'true'
-              slotname: 'stagging'
+              slotname: 'production'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
           - task: AzureAppServiceManage@0
@@ -97,4 +97,5 @@ stages:
               Action: 'Swap Slots'
               WebAppName: 'blue-green-deployment'
               ResourceGroupName: 'rg-jira-db-001'
-              SourceSlot: 'stagging'
+              SourceSlot: 'production'
+              TargetSlot: 'stagging'
