@@ -86,7 +86,7 @@ stages:
             inputs:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
               appType: 'webApp'
-              appName: '$WebAppNameDev'
+              appName: '$(WebAppNameDev)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
 - stage: 'Test'
@@ -110,7 +110,7 @@ stages:
             inputs:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
               appType: 'webApp'
-              appName: '$WebAppNameTest'
+              appName: '$(WebAppNameTest)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
 
@@ -135,7 +135,7 @@ stages:
             inputs:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
               appType: 'webApp'
-              appName: '$WebAppNameProd'
+              appName: '$(WebAppNameProd)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
 
