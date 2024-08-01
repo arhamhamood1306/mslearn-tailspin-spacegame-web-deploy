@@ -65,14 +65,14 @@ stages:
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
-- stage: 'Dev'
+- stage: 'Stagging'
   displayName: 'Deploy to the dev environment'
   dependsOn: Build
   jobs:
   - deployment: Deploy
     pool:
       vmImage: 'ubuntu-20.04'
-    environment: dev
+    environment: stagging
     variables:
     - group: Release
     strategy:
