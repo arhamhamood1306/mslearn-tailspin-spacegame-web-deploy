@@ -87,15 +87,31 @@ stages:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
               appType: 'webApp'
               appName: '$(WebAppNameDev)'
-              deployToSlotOrASE: 'true'
-              slotname: 'stagging'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
-          - task: AzureAppServiceManage@0
+            
+- stage: 'Test'
+  displayName: 'Deploy to the test environment'
+  dependsOn: Dev
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-20.04'
+    environment: test
+    variables:
+    - group: Release
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
             inputs:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
-              Action: 'Swap Slots'
-              WebAppName: 'blue-green-deployment'
-              ResourceGroupName: 'rg-jira-db-001'
-              SourceSlot: 'stagging'
-              TargetSlot: 'production'         
+              appType: 'webApp'
+              appName: '$(WebAppNameTest)'
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+              deploymentMethod: 'auto'
+        
