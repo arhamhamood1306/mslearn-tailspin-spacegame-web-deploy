@@ -82,7 +82,7 @@ stages:
           - task: AzureWebApp@1
             displayName: 'Azure App Service Deploy: website'
             inputs:
-              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+              azureSubscription: 'Azure-connection'
               appType: 'webApp'
               appName: '$(WebAppNameDev)'
               slotname: 'stagging'
