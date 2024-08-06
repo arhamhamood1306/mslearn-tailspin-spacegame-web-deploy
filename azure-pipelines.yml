@@ -65,14 +65,14 @@ stages:
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
-- stage: 'Stagging'
-  displayName: 'Deploy to the stagging environment'
+- stage: 'Staging'
+  displayName: 'Deploy to the staging environment'
   dependsOn: Build
   jobs:
   - deployment: Deploy
     pool:
       vmImage: 'ubuntu-20.04'
-    environment: stagging
+    environment: staging
     variables:
     - group: Release
     strategy:
@@ -88,14 +88,45 @@ stages:
               appType: 'webApp'
               appName: '$(WebAppNameDev)'
               deployToSlotOrASE: 'true'
-              slotname: 'stagging'
+              slotName: 'staging'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
-          - task: AzureAppServiceManage@0
-            inputs:
-              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
-              Action: 'Swap Slots'
-              WebAppName: 'blue-green-deployment'
-              ResourceGroupName: 'rg-jira-db-001'
-              SourceSlot: 'stagging'
-              TargetSlot: 'production'         
+
+- stage: 'Canary'
+  displayName: 'Canary deployment'
+  dependsOn: Staging
+  jobs:
+  - job: 'CanaryDeployment'
+    displayName: 'Canary deployment job'
+    pool:
+      vmImage: 'ubuntu-20.04'
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Redirect 10% traffic to staging slot'
+      inputs:
+        azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az webapp traffic-routing set \
+            --resource-group rg-jira-db-001 \
+            --name $(WebAppNameDev) \
+            --distribution staging=10 production=90
+
+    - script: |
+        echo 'Waiting for 30 minutes to monitor the deployment...'
+        sleep 1800  # Wait for 30 minutes
+      displayName: 'Wait and monitor'
+
+    - task: AzureCLI@2
+      displayName: 'Redirect 50% traffic to staging slot'
+      inputs:
+        azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az webapp traffic-routing set \
+            --resource-group rg-jira-db-001 \
+            --name $(WebAppNameDev) \
+            --distribution staging=50 production=50
+     
