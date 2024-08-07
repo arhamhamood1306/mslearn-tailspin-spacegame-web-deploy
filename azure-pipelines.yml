@@ -70,10 +70,10 @@ stages:
   dependsOn: Build
   jobs:
   - deployment: Deploy
+    environment: stagging
     displayName: 'Deploy to Staging'
     pool:
       vmImage: 'ubuntu-20.04'
-   
     strategy:
       canary:
         increments: [2]
