@@ -72,63 +72,55 @@ stages:
   - deployment: Deploy
     pool:
       vmImage: 'ubuntu-20.04'
-    environment: staging
+    environment: 'staging'
     variables:
     - group: Release
     strategy:
-      runOnce:
-        deploy:
+      canary:
+        increments: [2]
+        preDeploy:
           steps:
           - download: current
             artifact: drop
           - task: AzureWebApp@1
-            displayName: 'Azure App Service Deploy: website'
+            displayName: 'Azure App Service Deploy: website (10%)'
             inputs:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
               appType: 'webApp'
               appName: '$(WebAppNameDev)'
               deployToSlotOrASE: 'true'
-              slotName: 'stagging'
+              slotName: 'staging'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
-
-- stage: 'Canary'
-  displayName: 'Canary deployment'
-  dependsOn: Staging
-  jobs:
-  - job: 'CanaryDeployment'
-    displayName: 'Canary deployment job'
-    pool:
-      vmImage: 'ubuntu-20.04'
-    variables:
-    - group: Release
-    steps:
-    - task: AzureCLI@2
-      displayName: 'Redirect 10% traffic to staging slot'
-      inputs:
-        azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          az webapp traffic-routing set \
-            --resource-group rg-jira-db-001 \
-            --name $(WebAppNameDev) \
-            --distribution staging=10 production=90
-
-    - script: |
-        echo 'Waiting for 30 minutes to monitor the deployment...'
-        sleep 1800  # Wait for 30 minutes
-      displayName: 'Wait and monitor'
-
-    - task: AzureCLI@2
-      displayName: 'Redirect 50% traffic to staging slot'
-      inputs:
-        azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          az webapp traffic-routing set \
-            --resource-group rg-jira-db-001 \
-            --name $(WebAppNameDev) \
-            --distribution staging=50 production=50
-     
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website (50%)'
+            inputs:
+              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+              appType: 'webApp'
+              appName: '$(WebAppNameDev)'
+              deployToSlotOrASE: 'true'
+              slotName: 'staging'
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+              deploymentMethod: 'auto'
+        routeTraffic:
+          steps:
+          - script: echo 'Routing traffic to canary deployment'
+            displayName: 'Route traffic to canary deployment'
+        postRouteTraffic:
+          steps:
+          - script: echo 'Canary deployment complete'
+            displayName: 'Canary deployment complete'
+        on:
+          success:
+            steps:
+            - task: AzureAppServiceManage@0
+              displayName: 'Swap Slots'
+              inputs:
+                azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+                Action: 'Swap Slots'
+                WebAppName: 'blue-green-deployment'
+                ResourceGroupName: 'rg-jira-db-001'
+                SourceSlot: 'staging'
+                TargetSlot: 'production'
