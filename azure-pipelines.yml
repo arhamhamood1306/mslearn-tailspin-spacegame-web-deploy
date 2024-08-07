@@ -72,8 +72,8 @@ stages:
   - deployment: Deploy
     displayName: 'Deploy to Staging'
     pool:
-      vmImage: $(vmImageName)
-    environment: 'staging'
+      vmImage: 'ubuntu-20.04'
+    environment: stagging
     strategy:
       canary:
         increments: [2]
