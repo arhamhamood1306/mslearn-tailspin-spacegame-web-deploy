@@ -65,16 +65,15 @@ stages:
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
-- stage: 'Staging'
-  displayName: 'Deploy to the staging environment'
+- stage: Deploy
+  displayName: 'Deploy to Staging and Canary'
   dependsOn: Build
   jobs:
   - deployment: Deploy
+    displayName: 'Deploy to Staging'
     pool:
-      vmImage: 'ubuntu-20.04'
+      vmImage: $(vmImageName)
     environment: 'staging'
-    variables:
-    - group: Release
     strategy:
       canary:
         increments: [2]
@@ -83,44 +82,59 @@ stages:
           - download: current
             artifact: drop
           - task: AzureWebApp@1
-            displayName: 'Azure App Service Deploy: website (10%)'
+            displayName: 'Deploy to Staging Slot'
             inputs:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
               appType: 'webApp'
               appName: '$(WebAppNameDev)'
-              deployToSlotOrASE: 'true'
-              slotName: 'staging'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
-              deploymentMethod: 'auto'
+              slotName: 'staging'
         deploy:
           steps:
-          - task: AzureWebApp@1
-            displayName: 'Azure App Service Deploy: website (50%)'
+          - task: AzureAppServiceManage@0
+            displayName: 'Route 10% traffic to Staging Slot'
             inputs:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
-              appType: 'webApp'
+              action: 'Set Traffic Percentage'
               appName: '$(WebAppNameDev)'
-              deployToSlotOrASE: 'true'
+              resourceGroupName: 'rg-jira-db-001'
               slotName: 'staging'
-              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
-              deploymentMethod: 'auto'
-        routeTraffic:
-          steps:
-          - script: echo 'Routing traffic to canary deployment'
-            displayName: 'Route traffic to canary deployment'
+              trafficPercentage: '10'
+          - script: echo 'Monitoring Canary Deployment with 10% Traffic'
+            displayName: 'Monitor Canary Deployment'
+            timeoutInMinutes: 10
+          - task: AzureAppServiceManage@0
+            displayName: 'Route 50% traffic to Staging Slot'
+            inputs:
+              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+              action: 'Set Traffic Percentage'
+              appName: '$(WebAppNameDev)'
+              resourceGroupName: 'rg-jira-db-001'
+              slotName: 'staging'
+              trafficPercentage: '50'
+          - script: echo 'Monitoring Canary Deployment with 50% Traffic'
+            displayName: 'Monitor Canary Deployment'
+            timeoutInMinutes: 20
         postRouteTraffic:
           steps:
-          - script: echo 'Canary deployment complete'
-            displayName: 'Canary deployment complete'
+          - task: AzureAppServiceManage@0
+            displayName: 'Route 100% traffic to Staging Slot'
+            inputs:
+              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+              action: 'Set Traffic Percentage'
+              appName: '$(WebAppNameDev)'
+              resourceGroupName: 'rg-jira-db-001'
+              slotName: 'staging'
+              trafficPercentage: '100'
         on:
           success:
             steps:
             - task: AzureAppServiceManage@0
-              displayName: 'Swap Slots'
+              displayName: 'Swap Staging to Production'
               inputs:
                 azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
-                Action: 'Swap Slots'
-                WebAppName: 'blue-green-deployment'
-                ResourceGroupName: 'rg-jira-db-001'
-                SourceSlot: 'staging'
-                TargetSlot: 'production'
+                action: 'Swap Slots'
+                appName: '$(WebAppNameDev)'
+                resourceGroupName: 'rg-jira-db-001'
+                sourceSlot: 'staging'
+                targetSlot: 'production'
