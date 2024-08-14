@@ -65,7 +65,7 @@ stages:
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
-- stage: 'Stagging'
+- stage: 'Deploying'
   displayName: 'Deploy to the stagging environment'
   dependsOn: Build
   jobs:
@@ -77,6 +77,7 @@ stages:
     - group: Release
     strategy:
       runOnce:
+        
         deploy:
           steps:
           - download: current
@@ -87,15 +88,33 @@ stages:
               azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
               appType: 'webApp'
               appName: '$(WebAppNameDev)'
-              deployToSlotOrASE: 'true'
+              deployToSlotOrASE: true
               slotname: 'stagging'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
-          - task: AzureAppServiceManage@0
-            inputs:
-              azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
-              Action: 'Swap Slots'
-              WebAppName: 'blue-green-deployment'
-              ResourceGroupName: 'rg-jira-db-001'
-              SourceSlot: 'stagging'
-              TargetSlot: 'production'         
+
+  - job: Manual_Validation
+    dependsOn: Deploy
+    pool: server
+    steps:
+      - task: ManualValidation@1
+        inputs:
+          notifyUsers: 'hassaan.ilyas@systemsltd.com'
+          approvers: 'hassaan.ilyas@systemsltd.com'
+
+  - job: Swapping
+    dependsOn: Manual_Validation
+    pool:
+     vmImage: 'ubuntu-20.04'
+    steps:
+      - task: AzureAppServiceManage@0
+        inputs:
+          azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
+          Action: 'Swap Slots'
+          WebAppName: 'blue-green-deployment'
+          ResourceGroupName: 'rg-jira-db-001'
+          SourceSlot: 'stagging'
+          TargetSlot: 'production'
+          
+          
+                
