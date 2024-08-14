@@ -107,6 +107,7 @@ stages:
     pool:
      vmImage: 'ubuntu-20.04'
     steps:
+      - checkout: none
       - task: AzureAppServiceManage@0
         inputs:
           azureSubscription: 'Azure subscription 1(2bfbd01e-8d5a-4dda-a506-f8bab7025c23)'
