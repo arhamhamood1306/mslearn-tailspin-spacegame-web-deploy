@@ -75,9 +75,8 @@ stages:
     environment: stagging
     variables:
     - group: Release
-    strategy:
+    strategy: 
       runOnce:
-        
         deploy:
           steps:
           - download: current
@@ -92,11 +91,12 @@ stages:
               slotname: 'stagging'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
               deploymentMethod: 'auto'
-
+          
   - job: Manual_Validation
     dependsOn: Deploy
     pool: server
     steps:
+    
       - task: ManualValidation@1
         inputs:
           notifyUsers: 'hassaan.ilyas@systemsltd.com'
